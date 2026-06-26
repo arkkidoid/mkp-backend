@@ -70,7 +70,7 @@ const seedDatabase = async () => {
 
     // ── ADMIN ────────────────────────────────────────────
     const adminUser = await User.create({
-      name: 'Chirag Luhach',
+      name: 'Kartthik Reddy',
       email: 'admin@arkkidoid.com',
       phone: '9999900001',
       password: 'Admin@123',
@@ -86,7 +86,7 @@ const seedDatabase = async () => {
       schoolPhone: '0120-4567890',
       schoolEmail: 'hello@arkkidoid.com',
     });
-    console.log('👤 Admin (Director) created — Chirag Luhach');
+    console.log('👤 Admin (Director) created — Kartthik Reddy');
 
     // ── INSTRUCTORS (Teachers) ───────────────────────────
     const instructorDefs = [
