@@ -1,6 +1,52 @@
 const Notification = require('../models/Notification');
+const User = require('../models/User');
+const NotificationService = require('../services/notification.service');
 const ApiResponse = require('../utils/apiResponse');
 const { getPaginationOptions } = require('../utils/helpers');
+
+/**
+ * @desc    Admin: Broadcast notification
+ * @route   POST /api/notifications
+ */
+const sendNotification = async (req, res, next) => {
+  try {
+    const { title, body, targetRole } = req.body;
+    
+    let filter = { isActive: true };
+    if (targetRole === 'parent') filter.role = 'parent';
+    else if (targetRole === 'teacher') filter.role = 'teacher';
+    else if (targetRole === 'all') filter.role = { $in: ['parent', 'teacher'] };
+    
+    const users = await User.find(filter).select('_id');
+    const recipientIds = users.map(u => u._id);
+
+    if (recipientIds.length > 0) {
+      await NotificationService.sendBulkNotification({
+        recipientIds,
+        title,
+        body,
+        type: 'general',
+        senderId: req.user._id,
+      });
+
+      const io = req.app.get('io');
+      if (io) {
+        users.forEach(u => {
+          io.to(`user:${u._id}`).emit('notification:new', {
+            title,
+            body,
+            type: 'general',
+            createdAt: new Date(),
+          });
+        });
+      }
+    }
+
+    return ApiResponse.success(res, { message: `Notification sent to ${recipientIds.length} users` });
+  } catch (error) {
+    next(error);
+  }
+};
 
 /**
  * @desc    Get user's notifications
@@ -86,6 +132,7 @@ const getUnreadCount = async (req, res, next) => {
 };
 
 module.exports = {
+  sendNotification,
   getNotifications,
   markAsRead,
   markAllAsRead,
