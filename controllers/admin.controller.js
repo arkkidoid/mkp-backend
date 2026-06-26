@@ -6,6 +6,7 @@ const Batch = require('../models/Batch');
 const Subject = require('../models/Subject');
 const Attendance = require('../models/Attendance');
 const Fee = require('../models/Fee');
+const Submission = require('../models/Submission');
 const ApiResponse = require('../utils/apiResponse');
 const ApiError = require('../utils/apiError');
 const { getPaginationOptions, buildSearchFilter, getDayBounds } = require('../utils/helpers');
@@ -138,19 +139,28 @@ const updateParent = async (req, res, next) => {
 };
 
 /**
- * @desc    Delete (deactivate) a parent
+ * @desc    Delete a parent permanently
  * @route   DELETE /api/admin/parents/:id
  */
 const deleteParent = async (req, res, next) => {
   try {
-    const user = await User.findOneAndUpdate(
-      { _id: req.params.id, role: 'parent' },
-      { isActive: false },
-      { new: true }
-    );
-    if (!user) throw ApiError.notFound('Parent not found');
+    const user = await User.findById(req.params.id);
+    if (!user || user.role !== 'parent') throw ApiError.notFound('Parent not found');
 
-    return ApiResponse.success(res, { message: 'Parent deactivated' });
+    const profile = await Parent.findOne({ user: user._id });
+    
+    // Unset parent reference in all their children
+    if (profile && profile.children.length > 0) {
+      await Child.updateMany(
+        { _id: { $in: profile.children } },
+        { $unset: { parent: 1 } }
+      );
+    }
+
+    await Parent.findOneAndDelete({ user: user._id });
+    await User.findByIdAndDelete(user._id);
+
+    return ApiResponse.success(res, { message: 'Parent permanently deleted' });
   } catch (error) {
     next(error);
   }
@@ -281,19 +291,34 @@ const updateTeacher = async (req, res, next) => {
 };
 
 /**
- * @desc    Delete (deactivate) a teacher
+ * @desc    Delete a teacher permanently
  * @route   DELETE /api/admin/teachers/:id
  */
 const deleteTeacher = async (req, res, next) => {
   try {
-    const user = await User.findOneAndUpdate(
-      { _id: req.params.id, role: 'teacher' },
-      { isActive: false },
-      { new: true }
-    );
-    if (!user) throw ApiError.notFound('Teacher not found');
+    const user = await User.findById(req.params.id);
+    if (!user || user.role !== 'teacher') throw ApiError.notFound('Teacher not found');
 
-    return ApiResponse.success(res, { message: 'Teacher deactivated' });
+    const profile = await Teacher.findOne({ user: user._id });
+
+    // Unset teacher in all batches they were assigned to
+    if (profile && profile.batches.length > 0) {
+      await Batch.updateMany(
+        { _id: { $in: profile.batches } },
+        { $unset: { teacher: 1 } }
+      );
+    }
+
+    // Unset teacher from children documents directly
+    await Child.updateMany(
+      { teacher: user._id },
+      { $unset: { teacher: 1 } }
+    );
+
+    await Teacher.findOneAndDelete({ user: user._id });
+    await User.findByIdAndDelete(user._id);
+
+    return ApiResponse.success(res, { message: 'Teacher permanently deleted' });
   } catch (error) {
     next(error);
   }
@@ -445,26 +470,38 @@ const updateChild = async (req, res, next) => {
 };
 
 /**
- * @desc    Delete (archive) a child
+ * @desc    Delete a child permanently
  * @route   DELETE /api/admin/children/:id
  */
 const deleteChild = async (req, res, next) => {
   try {
-    const child = await Child.findByIdAndUpdate(
-      req.params.id,
-      { isActive: false, archivedAt: new Date() },
-      { new: true }
-    );
+    const child = await Child.findById(req.params.id);
     if (!child) throw ApiError.notFound('Child not found');
 
-    // Remove from batch
+    // Remove from Batch
     if (child.batch) {
       await Batch.findByIdAndUpdate(child.batch, {
         $pull: { children: child._id },
       });
     }
 
-    return ApiResponse.success(res, { message: 'Child archived' });
+    // Remove from Parent's profile
+    if (child.parent) {
+      await Parent.findOneAndUpdate(
+        { user: child.parent },
+        { $pull: { children: child._id } }
+      );
+    }
+
+    // Delete orphaned records
+    await Attendance.deleteMany({ child: child._id });
+    await Fee.deleteMany({ child: child._id });
+    await Submission.deleteMany({ child: child._id });
+
+    // Permanently delete the child document
+    await Child.findByIdAndDelete(req.params.id);
+
+    return ApiResponse.success(res, { message: 'Child permanently deleted' });
   } catch (error) {
     next(error);
   }

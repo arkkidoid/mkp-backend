@@ -3,7 +3,7 @@ const logger = require('../utils/logger');
 
 const envSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
-  PORT: Joi.number().default(5000),
+  PORT: Joi.number().default(5001),
   MONGODB_URI: Joi.string().required().description('MongoDB connection string'),
   JWT_SECRET: Joi.string().required().min(32).description('JWT secret key'),
   JWT_EXPIRES_IN: Joi.string().default('15m'),
