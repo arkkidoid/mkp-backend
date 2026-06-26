@@ -49,12 +49,55 @@ const sendNotification = async (req, res, next) => {
 };
 
 /**
- * @desc    Get user's notifications
+ * @desc    Get user's notifications or Admin's sent history
  * @route   GET /api/notifications
  */
 const getNotifications = async (req, res, next) => {
   try {
     const { page, limit, skip } = getPaginationOptions(req.query);
+    
+    // Admin sees sent history
+    if (req.user.role === 'admin') {
+      const sentNotifications = await Notification.aggregate([
+        { $match: { sender: req.user._id } },
+        { 
+          $group: {
+            _id: { title: "$title", body: "$body" },
+            createdAt: { $max: "$createdAt" },
+            type: { $first: "$type" },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit }
+      ]);
+      
+      const formattedData = sentNotifications.map(n => ({
+        _id: n._id.title + n._id.body, 
+        title: n._id.title,
+        body: n._id.body,
+        type: n.type,
+        createdAt: n.createdAt,
+        recipientsCount: n.count
+      }));
+
+      const totalGrouped = await Notification.aggregate([
+        { $match: { sender: req.user._id } },
+        { $group: { _id: { title: "$title", body: "$body" } } },
+        { $count: "total" }
+      ]);
+
+      return ApiResponse.paginated(res, {
+        data: formattedData,
+        page,
+        limit,
+        total: totalGrouped[0]?.total || 0,
+        message: 'Success',
+      });
+    }
+
+    // Normal users see received notifications
     const filter = {
       recipient: req.user._id,
       ...(req.query.isRead !== undefined && { isRead: req.query.isRead === 'true' }),
