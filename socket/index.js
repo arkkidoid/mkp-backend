@@ -11,6 +11,7 @@ const initializeSocket = (server) => {
       origin: [
         process.env.CLIENT_URL || 'http://localhost:3000',
         process.env.ADMIN_URL || 'http://localhost:5173',
+        'https://mkp-admin.vercel.app'
       ],
       credentials: true,
     },
