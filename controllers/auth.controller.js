@@ -8,6 +8,34 @@ const ApiResponse = require('../utils/apiResponse');
 const ApiError = require('../utils/apiError');
 
 /**
+ * Load the role-specific profile for a user.
+ */
+const getProfileForUser = async (user) => {
+  if (user.role === 'parent') {
+    return Parent.findOne({ user: user._id }).populate('children');
+  }
+  if (user.role === 'teacher') {
+    return Teacher.findOne({ user: user._id }).populate('batches');
+  }
+  if (user.role === 'admin') {
+    return Admin.findOne({ user: user._id });
+  }
+  return null;
+};
+
+/**
+ * Issue tokens + profile and send the standard login response.
+ */
+const issueSession = async (res, user, device) => {
+  const tokens = await AuthService.generateTokens(user, device);
+  const profile = await getProfileForUser(user);
+  return ApiResponse.success(res, {
+    message: 'Login successful',
+    data: { user: user.toJSON(), profile, ...tokens },
+  });
+};
+
+/**
  * @desc    Send OTP to phone number
  * @route   POST /api/auth/send-otp
  * @access  Public
@@ -35,33 +63,35 @@ const verifyOTP = async (req, res, next) => {
 
     await OTPService.verifyOTP(phone, otp);
 
-    // Find user by phone
     const user = await User.findOne({ phone, isActive: true });
     if (!user) {
       throw ApiError.notFound('No account found with this phone number. Please contact your school administrator.');
     }
 
-    // Generate tokens
-    const tokens = await AuthService.generateTokens(user, device);
+    return issueSession(res, user, device);
+  } catch (error) {
+    next(error);
+  }
+};
 
-    // Get role-specific profile
-    let profile = null;
-    if (user.role === 'parent') {
-      profile = await Parent.findOne({ user: user._id }).populate('children');
-    } else if (user.role === 'teacher') {
-      profile = await Teacher.findOne({ user: user._id }).populate('batches');
-    } else if (user.role === 'admin') {
-      profile = await Admin.findOne({ user: user._id });
+/**
+ * @desc    Passwordless login via registered phone number (no OTP)
+ * @route   POST /api/auth/phone-login
+ * @access  Public
+ */
+const phoneLogin = async (req, res, next) => {
+  try {
+    const { phone, device } = req.body;
+
+    const user = await User.findOne({ phone, isActive: true });
+    if (!user) {
+      throw ApiError.notFound('No account found with this phone number. Please contact your school administrator.');
+    }
+    if (user.role === 'admin') {
+      throw ApiError.forbidden('Admins sign in on the web dashboard, not the app.');
     }
 
-    return ApiResponse.success(res, {
-      message: 'Login successful',
-      data: {
-        user: user.toJSON(),
-        profile,
-        ...tokens,
-      },
-    });
+    return issueSession(res, user, device);
   } catch (error) {
     next(error);
   }
@@ -90,26 +120,7 @@ const login = async (req, res, next) => {
       throw ApiError.unauthorized('Invalid email or password');
     }
 
-    const tokens = await AuthService.generateTokens(user, device);
-
-    // Get role-specific profile
-    let profile = null;
-    if (user.role === 'parent') {
-      profile = await Parent.findOne({ user: user._id }).populate('children');
-    } else if (user.role === 'teacher') {
-      profile = await Teacher.findOne({ user: user._id }).populate('batches');
-    } else if (user.role === 'admin') {
-      profile = await Admin.findOne({ user: user._id });
-    }
-
-    return ApiResponse.success(res, {
-      message: 'Login successful',
-      data: {
-        user: user.toJSON(),
-        profile,
-        ...tokens,
-      },
-    });
+    return issueSession(res, user, device);
   } catch (error) {
     next(error);
   }
@@ -294,6 +305,7 @@ const registerFCMToken = async (req, res, next) => {
 module.exports = {
   sendOTP,
   verifyOTP,
+  phoneLogin,
   login,
   refreshToken,
   logout,

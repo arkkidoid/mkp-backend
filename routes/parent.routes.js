@@ -12,5 +12,6 @@ router.get('/assignments/:childId', parentController.getChildAssignments);
 router.get('/fees/:childId', parentController.getChildFees);
 router.get('/gallery', parentController.getGallery);
 router.get('/messages', parentController.getMessages);
+router.get('/teachers', parentController.getMyTeachers);
 
 module.exports = router;

@@ -10,39 +10,41 @@ const { getPaginationOptions } = require('../utils/helpers');
  */
 const sendNotification = async (req, res, next) => {
   try {
-    const { title, body, targetRole } = req.body;
-    
-    let filter = { isActive: true };
-    if (targetRole === 'parent') filter.role = 'parent';
-    else if (targetRole === 'teacher') filter.role = 'teacher';
-    else if (targetRole === 'all') filter.role = { $in: ['parent', 'teacher'] };
-    
-    const users = await User.find(filter).select('_id');
-    const recipientIds = users.map(u => u._id);
+    const { title, body, targetRole, targetUserId } = req.body;
+
+    let recipientIds = [];
+
+    if (targetUserId) {
+      // Targeted: specific user
+      recipientIds = [targetUserId];
+    } else {
+      let filter = { isActive: true, role: { $in: ['parent', 'teacher'] } };
+      if (targetRole === 'parent') filter.role = 'parent';
+      else if (targetRole === 'teacher') filter.role = 'teacher';
+      const users = await User.find(filter).select('_id');
+      recipientIds = users.map(u => u._id);
+    }
 
     if (recipientIds.length > 0) {
       await NotificationService.sendBulkNotification({
         recipientIds,
         title,
         body,
-        type: 'general',
+        type: req.body.type || 'general',
         senderId: req.user._id,
       });
 
       const io = req.app.get('io');
       if (io) {
-        users.forEach(u => {
-          io.to(`user:${u._id}`).emit('notification:new', {
-            title,
-            body,
-            type: 'general',
-            createdAt: new Date(),
+        recipientIds.forEach(uid => {
+          io.to(`user:${uid}`).emit('notification:new', {
+            title, body, type: req.body.type || 'general', createdAt: new Date(),
           });
         });
       }
     }
 
-    return ApiResponse.success(res, { message: `Notification sent to ${recipientIds.length} users` });
+    return ApiResponse.success(res, { message: `Notification sent to ${recipientIds.length} user(s)` });
   } catch (error) {
     next(error);
   }

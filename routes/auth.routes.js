@@ -8,6 +8,7 @@ const authValidator = require('../validators/auth.validator');
 // Public routes
 router.post('/send-otp', otpLimiter, validate(authValidator.sendOTP), authController.sendOTP);
 router.post('/verify-otp', authLimiter, validate(authValidator.verifyOTP), authController.verifyOTP);
+router.post('/phone-login', authLimiter, validate(authValidator.phoneLogin), authController.phoneLogin);
 router.post('/login', authLimiter, validate(authValidator.login), authController.login);
 router.post('/refresh-token', validate(authValidator.refreshToken), authController.refreshToken);
 

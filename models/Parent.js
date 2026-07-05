@@ -51,6 +51,4 @@ parentSchema.virtual('childrenCount').get(function () {
   return this.children ? this.children.length : 0;
 });
 
-parentSchema.index({ user: 1 });
-
 module.exports = mongoose.model('Parent', parentSchema);

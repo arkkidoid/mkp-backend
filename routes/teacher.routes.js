@@ -30,4 +30,7 @@ router.post('/announcements', teacherController.sendAnnouncement);
 router.get('/leave', teacherController.getLeaveHistory);
 router.post('/leave', teacherController.applyLeave);
 
+// Chat contacts
+router.get('/parents', teacherController.getMyParents);
+
 module.exports = router;

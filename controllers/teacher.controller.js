@@ -382,6 +382,52 @@ const getLeaveHistory = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get parents of children in this teacher's batches (for chat)
+ * @route   GET /api/teacher/parents
+ */
+const getMyParents = async (req, res, next) => {
+  try {
+    const batches = await Batch.find({ teacher: req.user._id, isActive: true })
+      .populate({
+        path: 'children',
+        match: { isActive: true },
+        select: 'name class section parent',
+        populate: { path: 'parent', select: 'name phone email role' },
+      })
+      .select('name subject children');
+
+    const parentMap = new Map();
+    batches.forEach((batch) => {
+      (batch.children || []).forEach((child) => {
+        const parent = child.parent;
+        if (parent) {
+          const pid = String(parent._id);
+          if (!parentMap.has(pid)) {
+            parentMap.set(pid, {
+              _id: parent._id,
+              name: parent.name,
+              phone: parent.phone,
+              email: parent.email,
+              role: parent.role,
+              children: [],
+            });
+          }
+          parentMap.get(pid).children.push({
+            _id: child._id,
+            name: child.name,
+            batchName: batch.name,
+          });
+        }
+      });
+    });
+
+    return ApiResponse.success(res, { data: Array.from(parentMap.values()) });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboard,
   getMyBatches,
@@ -393,4 +439,5 @@ module.exports = {
   sendAnnouncement,
   applyLeave,
   getLeaveHistory,
+  getMyParents,
 };

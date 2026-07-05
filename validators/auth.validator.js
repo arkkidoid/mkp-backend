@@ -28,6 +28,17 @@ const verifyOTP = Joi.object({
   device: Joi.string().optional().default('unknown'),
 });
 
+const phoneLogin = Joi.object({
+  phone: Joi.string()
+    .pattern(/^[6-9]\d{9}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'Please provide a valid 10-digit Indian mobile number',
+      'any.required': 'Phone number is required',
+    }),
+  device: Joi.string().optional().default('unknown'),
+});
+
 const login = Joi.object({
   email: Joi.string().email().required().messages({
     'string.email': 'Please provide a valid email',
@@ -78,6 +89,7 @@ const changePassword = Joi.object({
 module.exports = {
   sendOTP,
   verifyOTP,
+  phoneLogin,
   login,
   register,
   refreshToken,

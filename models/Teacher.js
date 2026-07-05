@@ -70,7 +70,6 @@ teacherSchema.virtual('batchCount').get(function () {
   return this.batches ? this.batches.length : 0;
 });
 
-teacherSchema.index({ user: 1 });
 teacherSchema.index({ isActive: 1 });
 
 module.exports = mongoose.model('Teacher', teacherSchema);

@@ -337,6 +337,52 @@ const getMessages = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get teachers for this parent's children (for chat)
+ * @route   GET /api/parent/teachers
+ */
+const getMyTeachers = async (req, res, next) => {
+  try {
+    const children = await Child.find({ parent: req.user._id, isActive: true })
+      .populate({
+        path: 'batch',
+        select: 'name teacher subject',
+        populate: [
+          { path: 'teacher', select: 'name phone email role' },
+          { path: 'subject', select: 'name color' },
+        ],
+      });
+
+    const teacherMap = new Map();
+    children.forEach((child) => {
+      const teacher = child.batch?.teacher;
+      if (teacher) {
+        const tid = String(teacher._id);
+        if (!teacherMap.has(tid)) {
+          teacherMap.set(tid, {
+            _id: teacher._id,
+            name: teacher.name,
+            phone: teacher.phone,
+            email: teacher.email,
+            role: teacher.role,
+            subject: child.batch?.subject?.name || '',
+            children: [],
+          });
+        }
+        teacherMap.get(tid).children.push({
+          _id: child._id,
+          name: child.name,
+          batchName: child.batch?.name,
+        });
+      }
+    });
+
+    return ApiResponse.success(res, { data: Array.from(teacherMap.values()) });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboard,
   getMyChildren,
@@ -345,4 +391,5 @@ module.exports = {
   getChildFees,
   getGallery,
   getMessages,
+  getMyTeachers,
 };

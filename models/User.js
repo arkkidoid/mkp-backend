@@ -23,6 +23,7 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Phone number is required'],
       unique: true,
       trim: true,
+      match: [/^[6-9]\d{9}$/, 'Phone must be a valid 10-digit Indian mobile number'],
     },
     password: {
       type: String,
@@ -76,9 +77,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Index for fast lookups
-userSchema.index({ phone: 1 });
-userSchema.index({ email: 1 });
+// Index for fast lookups (phone & email are already indexed via `unique: true`)
 userSchema.index({ role: 1, isActive: 1 });
 
 // Hash password before saving
