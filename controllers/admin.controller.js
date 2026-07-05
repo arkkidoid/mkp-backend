@@ -189,7 +189,7 @@ const getTeachers = async (req, res, next) => {
     const teachersWithProfile = await Promise.all(
       teachers.map(async (user) => {
         const profile = await Teacher.findOne({ user: user._id })
-          .populate('subjects', 'name')
+          .populate('subjects', 'name color')
           .populate('batches', 'name');
         return { ...user.toJSON(), profile };
       })
@@ -281,7 +281,7 @@ const updateTeacher = async (req, res, next) => {
     }
 
     const profile = await Teacher.findOne({ user: user._id })
-      .populate('subjects', 'name')
+      .populate('subjects', 'name color')
       .populate('batches', 'name');
 
     return ApiResponse.success(res, { message: 'Teacher updated', data: { user, profile } });

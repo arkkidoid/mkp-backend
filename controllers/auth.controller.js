@@ -15,7 +15,9 @@ const getProfileForUser = async (user) => {
     return Parent.findOne({ user: user._id }).populate('children');
   }
   if (user.role === 'teacher') {
-    return Teacher.findOne({ user: user._id }).populate('batches');
+    return Teacher.findOne({ user: user._id })
+      .populate('batches')
+      .populate('subjects', 'name color');
   }
   if (user.role === 'admin') {
     return Admin.findOne({ user: user._id });
@@ -197,10 +199,12 @@ const getMe = async (req, res, next) => {
         ],
       });
     } else if (user.role === 'teacher') {
-      profile = await Teacher.findOne({ user: user._id }).populate({
-        path: 'batches',
-        select: 'name subject schedule studentCount',
-      });
+      profile = await Teacher.findOne({ user: user._id })
+        .populate({
+          path: 'batches',
+          select: 'name subject schedule studentCount',
+        })
+        .populate('subjects', 'name color');
     } else if (user.role === 'admin') {
       profile = await Admin.findOne({ user: user._id });
     }
