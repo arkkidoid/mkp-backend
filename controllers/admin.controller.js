@@ -381,6 +381,65 @@ const getChild = async (req, res, next) => {
  * @desc    Create a child
  * @route   POST /api/admin/children
  */
+/**
+ * Normalize a batch name to "COURSECODE-LABEL" (e.g. "ROB-A"). Idempotent —
+ * strips an existing matching code prefix before re-applying, so re-saving
+ * "ROB-A" stays "ROB-A" and a bare "A" becomes "ROB-A".
+ */
+const buildBatchName = (rawName, courseCode) => {
+  let label = (rawName || '').trim();
+  if (!courseCode) return label;
+  const prefix = `${courseCode}-`;
+  if (label.toUpperCase().startsWith(prefix.toUpperCase())) label = label.slice(prefix.length);
+  return `${courseCode}-${label}`;
+};
+
+/**
+ * Enroll a child into a batch's course: set the class label to the batch
+ * name (already "COURSECODE-LABEL", e.g. "ROB-A") and auto-assign the course
+ * fees (one-time admission + first month) to the child's parent.
+ */
+const enrollInBatchCourse = async (childId, batchId, parentId) => {
+  if (!batchId) return;
+  const batch = await Batch.findById(batchId).populate('subject');
+  const course = batch?.subject;
+  if (!course) return;
+
+  // Class label = batch name (e.g. "ROB-A"); section = course code
+  await Child.findByIdAndUpdate(childId, {
+    class: batch.name,
+    section: course.code,
+  });
+
+  // Auto-assign fees (skip any that already exist for this child + course)
+  const escaped = course.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const existing = await Fee.countDocuments({ child: childId, title: new RegExp('^' + escaped + ' — ') });
+  if (existing > 0) return;
+
+  const now = new Date();
+  const due = new Date(now);
+  due.setDate(due.getDate() + 7);
+  const monthLabel = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const fees = [];
+  if (course.admissionFee > 0) {
+    fees.push({
+      child: childId, parent: parentId,
+      title: `${course.name} — Admission Fee`,
+      amount: course.admissionFee, discount: 0, finalAmount: course.admissionFee,
+      dueDate: due, status: 'pending', feeType: 'other',
+    });
+  }
+  if (course.monthlyFee > 0) {
+    fees.push({
+      child: childId, parent: parentId,
+      title: `${course.name} — Fee (${monthLabel})`,
+      amount: course.monthlyFee, discount: 0, finalAmount: course.monthlyFee,
+      dueDate: due, status: 'pending', feeType: 'tuition', month: monthLabel, isRecurring: true,
+    });
+  }
+  if (fees.length) await Fee.insertMany(fees);
+};
+
 const createChild = async (req, res, next) => {
   try {
     const { parentId, batchId, teacherId, ...childData } = req.body;
@@ -402,11 +461,12 @@ const createChild = async (req, res, next) => {
       { $addToSet: { children: child._id } }
     );
 
-    // Add child to batch if specified
+    // Add child to batch + derive class + auto-assign course fees
     if (batchId) {
       await Batch.findByIdAndUpdate(batchId, {
         $addToSet: { children: child._id },
       });
+      await enrollInBatchCourse(child._id, batchId, parentId);
     }
 
     const populatedChild = await Child.findById(child._id)
@@ -430,6 +490,9 @@ const createChild = async (req, res, next) => {
 const updateChild = async (req, res, next) => {
   try {
     const { batchId, teacherId, ...updateData } = req.body;
+    // class + section are system-derived from the batch's course — never set manually
+    delete updateData.class;
+    delete updateData.section;
 
     const child = await Child.findById(req.params.id);
     if (!child) throw ApiError.notFound('Child not found');
@@ -449,6 +512,11 @@ const updateChild = async (req, res, next) => {
         });
       }
       updateData.batch = batchId;
+    }
+
+    // Re-derive class + assign course fees when (re)assigned to a batch
+    if (batchId) {
+      await enrollInBatchCourse(child._id, batchId, child.parent);
     }
 
     if (teacherId !== undefined) {
@@ -525,7 +593,7 @@ const getBatches = async (req, res, next) => {
     const [batches, total] = await Promise.all([
       Batch.find(filter)
         .populate('teacher', 'name phone')
-        .populate('subject', 'name')
+        .populate('subject', 'name code color')
         .populate('children', 'name class')
         .sort(sort)
         .skip(skip)
@@ -551,6 +619,10 @@ const createBatch = async (req, res, next) => {
     const teacher = await User.findOne({ _id: teacherId, role: 'teacher', isActive: true });
     if (!teacher) throw ApiError.notFound('Teacher not found');
 
+    // Name the batch "COURSECODE-LABEL" (e.g. "ROB-A")
+    const course = subjectId ? await Subject.findById(subjectId) : null;
+    batchData.name = buildBatchName(batchData.name, course?.code);
+
     const batch = await Batch.create({
       ...batchData,
       teacher: teacherId,
@@ -565,7 +637,7 @@ const createBatch = async (req, res, next) => {
 
     const populatedBatch = await Batch.findById(batch._id)
       .populate('teacher', 'name')
-      .populate('subject', 'name');
+      .populate('subject', 'name code color');
 
     return ApiResponse.created(res, {
       message: 'Batch created successfully',
@@ -604,12 +676,19 @@ const updateBatch = async (req, res, next) => {
 
     if (subjectId !== undefined) updateData.subject = subjectId;
 
+    // Re-name "COURSECODE-LABEL" from the (possibly changed) course
+    const courseId = subjectId !== undefined ? subjectId : batch.subject;
+    const course = courseId ? await Subject.findById(courseId) : null;
+    if (course?.code && updateData.name !== undefined) {
+      updateData.name = buildBatchName(updateData.name, course.code);
+    }
+
     const updatedBatch = await Batch.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true,
     })
       .populate('teacher', 'name')
-      .populate('subject', 'name')
+      .populate('subject', 'name code color')
       .populate('children', 'name class');
 
     return ApiResponse.success(res, { message: 'Batch updated', data: updatedBatch });
@@ -624,14 +703,23 @@ const updateBatch = async (req, res, next) => {
  */
 const deleteBatch = async (req, res, next) => {
   try {
-    const batch = await Batch.findByIdAndUpdate(
-      req.params.id,
-      { isActive: false },
-      { new: true }
-    );
+    const batch = await Batch.findById(req.params.id);
     if (!batch) throw ApiError.notFound('Batch not found');
 
-    return ApiResponse.success(res, { message: 'Batch deactivated' });
+    // Remove this batch from its teacher's batch list
+    if (batch.teacher) {
+      await Teacher.findOneAndUpdate({ user: batch.teacher }, { $pull: { batches: batch._id } });
+    }
+
+    // Unassign any students in this batch (clear the derived class + course code)
+    await Child.updateMany(
+      { batch: batch._id },
+      { $unset: { batch: 1 }, $set: { class: '', section: '' } }
+    );
+
+    await Batch.findByIdAndDelete(batch._id);
+
+    return ApiResponse.success(res, { message: 'Batch deleted' });
   } catch (error) {
     next(error);
   }

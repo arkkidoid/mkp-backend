@@ -4,13 +4,15 @@ const subjectSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Subject name is required'],
+      required: [true, 'Course name is required'],
       trim: true,
       unique: true,
     },
     code: {
       type: String,
+      required: [true, 'Course code is required'],
       trim: true,
+      uppercase: true,
       unique: true,
       sparse: true,
     },
@@ -18,6 +20,21 @@ const subjectSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    // ── Fees (COD — collected offline, tracked here) ──
+    monthlyFee: {
+      type: Number,
+      default: 0,
+      min: [0, 'Monthly fee cannot be negative'],
+    },
+    admissionFee: {
+      type: Number,
+      default: 0,
+      min: [0, 'Admission fee cannot be negative'],
+    },
+    // ── Course details ──
+    duration: { type: String, trim: true },   // e.g. "3 months", "Ongoing"
+    ageGroup: { type: String, trim: true },    // e.g. "5-12 years"
+    level: { type: String, trim: true },       // e.g. "Beginner"
     icon: {
       type: String, // icon name or URL
     },

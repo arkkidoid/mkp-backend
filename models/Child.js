@@ -22,11 +22,12 @@ const childSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // class = derived label "COURSECODE-BATCH" (e.g. "CR-A"); set on enrollment
     class: {
       type: String,
-      required: [true, 'Class is required'],
       trim: true,
     },
+    // section = course code (e.g. "CR")
     section: {
       type: String,
       trim: true,

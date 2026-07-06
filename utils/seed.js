@@ -50,21 +50,6 @@ const seedDatabase = async () => {
     ]);
     console.log('🗑️  Cleared all collections');
 
-    // ── COURSES (Subjects) ───────────────────────────────
-    const courses = await Subject.insertMany([
-      { name: 'Robotics & Electronics',        code: 'ROB',  color: '#E53935', icon: 'cpu',        isActive: true },
-      { name: 'STEM Coding (Scratch & Python)', code: 'CODE', color: '#1E88E5', icon: 'code',       isActive: true },
-      { name: 'Chess — Strategy & Thinking',    code: 'CHESS',color: '#43A047', icon: 'grid',       isActive: true },
-      { name: 'Abacus & Mental Arithmetic',     code: 'ABAC', color: '#FB8C00', icon: 'calculator', isActive: true },
-      { name: 'Vedic Mathematics',              code: 'VED',  color: '#8E24AA', icon: 'infinity',   isActive: true },
-      { name: 'Public Speaking & Personality',  code: 'PS',   color: '#00ACC1', icon: 'mic',        isActive: true },
-      { name: 'Art & Craft',                    code: 'ART',  color: '#F4511E', icon: 'palette',     isActive: true },
-      { name: "Rubik's Cube Mastery",           code: 'RUB',  color: '#FFB300', icon: 'cube',        isActive: true },
-      { name: 'Computer Fundamentals',          code: 'COMP', color: '#6D4C41', icon: 'monitor',     isActive: true },
-      { name: 'Teacher Training Program',       code: 'TTP',  color: '#546E7A', icon: 'book-open',   isActive: true },
-    ]);
-    console.log(`📚 ${courses.length} Courses created`);
-
     // ── ADMIN (web dashboard login) ──────────────────────
     const adminUser = await User.create({
       name: 'Kartthik Reddy',

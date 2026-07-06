@@ -17,6 +17,12 @@ const batchSchema = new mongoose.Schema(
       ref: 'User',
       required: [true, 'Teacher is required'],
     },
+    // Venue / place where this batch's sessions are held (a teacher may run
+    // batches at several locations)
+    location: {
+      type: String,
+      trim: true,
+    },
     classroom: {
       type: String,
       trim: true,
