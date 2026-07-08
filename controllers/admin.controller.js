@@ -773,9 +773,16 @@ const updateSubject = async (req, res, next) => {
  */
 const deleteSubject = async (req, res, next) => {
   try {
-    const subject = await Subject.findByIdAndUpdate(req.params.id, { isActive: false }, { new: true });
-    if (!subject) throw ApiError.notFound('Subject not found');
-    return ApiResponse.success(res, { message: 'Subject deactivated' });
+    const subject = await Subject.findById(req.params.id);
+    if (!subject) throw ApiError.notFound('Course not found');
+
+    // Detach from teachers and batches that reference this course
+    await Teacher.updateMany({ subjects: subject._id }, { $pull: { subjects: subject._id } });
+    await Batch.updateMany({ subject: subject._id }, { $unset: { subject: 1 } });
+
+    await Subject.findByIdAndDelete(subject._id);
+
+    return ApiResponse.success(res, { message: 'Course deleted' });
   } catch (error) {
     next(error);
   }
