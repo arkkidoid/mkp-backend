@@ -79,7 +79,7 @@ const getParent = async (req, res, next) => {
  */
 const createParent = async (req, res, next) => {
   try {
-    const { name, email, phone, password, address, occupation, emergencyContacts } = req.body;
+    const { name, email, phone, password, accessCode, address, occupation, emergencyContacts } = req.body;
 
     // Create user
     const user = await User.create({
@@ -87,6 +87,7 @@ const createParent = async (req, res, next) => {
       email,
       phone,
       password: password || undefined,
+      accessCode: accessCode || undefined,
       role: 'parent',
       isVerified: true,
       address,
@@ -114,11 +115,14 @@ const createParent = async (req, res, next) => {
  */
 const updateParent = async (req, res, next) => {
   try {
-    const { name, email, phone, address, isActive, occupation, emergencyContacts } = req.body;
+    const { name, email, phone, address, isActive, occupation, emergencyContacts, accessCode } = req.body;
+
+    const userUpdate = { name, email, phone, address, isActive };
+    if (accessCode) userUpdate.accessCode = accessCode;
 
     const user = await User.findOneAndUpdate(
       { _id: req.params.id, role: 'parent' },
-      { name, email, phone, address, isActive },
+      userUpdate,
       { new: true, runValidators: true }
     );
 
@@ -230,13 +234,14 @@ const getTeacher = async (req, res, next) => {
 const createTeacher = async (req, res, next) => {
   try {
     const {
-      name, email, phone, password, address,
+      name, email, phone, password, accessCode, address,
       qualification, experience, specialization, employeeId, subjects, joiningDate,
     } = req.body;
 
     const user = await User.create({
       name, email, phone,
       password: password || undefined,
+      accessCode: accessCode || undefined,
       role: 'teacher',
       isVerified: true,
       address,
@@ -267,11 +272,14 @@ const createTeacher = async (req, res, next) => {
  */
 const updateTeacher = async (req, res, next) => {
   try {
-    const { name, email, phone, address, isActive, ...profileData } = req.body;
+    const { name, email, phone, address, isActive, accessCode, ...profileData } = req.body;
+
+    const userUpdate = { name, email, phone, address, isActive };
+    if (accessCode) userUpdate.accessCode = accessCode;
 
     const user = await User.findOneAndUpdate(
       { _id: req.params.id, role: 'teacher' },
-      { name, email, phone, address, isActive },
+      userUpdate,
       { new: true, runValidators: true }
     );
     if (!user) throw ApiError.notFound('Teacher not found');

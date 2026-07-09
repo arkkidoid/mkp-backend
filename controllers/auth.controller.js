@@ -83,14 +83,23 @@ const verifyOTP = async (req, res, next) => {
  */
 const phoneLogin = async (req, res, next) => {
   try {
-    const { phone, device } = req.body;
+    const { phone, accessCode, device } = req.body;
 
-    const user = await User.findOne({ phone, isActive: true });
+    if (!accessCode) {
+      throw ApiError.badRequest('A 6-digit access code is required');
+    }
+
+    const user = await User.findOne({ phone, isActive: true }).select('+accessCode');
     if (!user) {
       throw ApiError.notFound('No account found with this phone number. Please contact your school administrator.');
     }
     if (user.role === 'admin') {
       throw ApiError.forbidden('Admins sign in on the web dashboard, not the app.');
+    }
+
+    const isMatch = await user.compareAccessCode(accessCode);
+    if (!isMatch) {
+      throw ApiError.unauthorized('Invalid access code');
     }
 
     return issueSession(res, user, device);

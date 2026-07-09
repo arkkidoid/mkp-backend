@@ -30,6 +30,10 @@ const userSchema = new mongoose.Schema(
       minlength: [6, 'Password must be at least 6 characters'],
       select: false, // Don't include in queries by default
     },
+    accessCode: {
+      type: String,
+      select: false,
+    },
     role: {
       type: String,
       enum: Object.values(ROLES),
@@ -80,16 +84,26 @@ const userSchema = new mongoose.Schema(
 // Index for fast lookups (phone & email are already indexed via `unique: true`)
 userSchema.index({ role: 1, isActive: 1 });
 
-// Hash password before saving
+// Hash credentials before saving
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password') || !this.password) return next();
-  this.password = await bcrypt.hash(this.password, 12);
+  if (this.isModified('password') && this.password) {
+    this.password = await bcrypt.hash(this.password, 12);
+  }
+  if (this.isModified('accessCode') && this.accessCode) {
+    this.accessCode = await bcrypt.hash(this.accessCode, 12);
+  }
   next();
 });
 
 // Compare passwords
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
+};
+
+// Compare access code
+userSchema.methods.compareAccessCode = async function (candidateCode) {
+  if (!this.accessCode) return false;
+  return bcrypt.compare(candidateCode, this.accessCode);
 };
 
 // Remove sensitive fields from JSON
