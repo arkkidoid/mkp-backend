@@ -118,7 +118,7 @@ const updateParent = async (req, res, next) => {
     const { name, email, phone, address, isActive, occupation, emergencyContacts, accessCode } = req.body;
 
     const userUpdate = { name, email, phone, address, isActive };
-    if (accessCode) userUpdate.accessCode = accessCode;
+    if (accessCode) { const bcrypt = require('bcryptjs'); userUpdate.accessCode = await bcrypt.hash(accessCode, 12); }
 
     const user = await User.findOneAndUpdate(
       { _id: req.params.id, role: 'parent' },
@@ -275,7 +275,10 @@ const updateTeacher = async (req, res, next) => {
     const { name, email, phone, address, isActive, accessCode, ...profileData } = req.body;
 
     const userUpdate = { name, email, phone, address, isActive };
-    if (accessCode) userUpdate.accessCode = accessCode;
+    if (accessCode) {
+      const bcrypt = require('bcryptjs');
+      userUpdate.accessCode = await bcrypt.hash(accessCode, 12);
+    }
 
     const user = await User.findOneAndUpdate(
       { _id: req.params.id, role: 'teacher' },
