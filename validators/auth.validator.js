@@ -36,6 +36,15 @@ const phoneLogin = Joi.object({
       'string.pattern.base': 'Please provide a valid 10-digit Indian mobile number',
       'any.required': 'Phone number is required',
     }),
+  accessCode: Joi.string()
+    .length(6)
+    .pattern(/^\d{6}$/)
+    .required()
+    .messages({
+      'string.length': 'Access code must be exactly 6 digits',
+      'string.pattern.base': 'Access code must be exactly 6 digits',
+      'any.required': 'Access code is required',
+    }),
   device: Joi.string().optional().default('unknown'),
 });
 
