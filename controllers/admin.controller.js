@@ -87,7 +87,7 @@ const createParent = async (req, res, next) => {
       email,
       phone,
       password: password || undefined,
-      accessCode: accessCode || undefined,
+      accessCode: accessCode || '123456', // app login code — defaults to 123456
       role: 'parent',
       isVerified: true,
       address,
@@ -241,7 +241,7 @@ const createTeacher = async (req, res, next) => {
     const user = await User.create({
       name, email, phone,
       password: password || undefined,
-      accessCode: accessCode || undefined,
+      accessCode: accessCode || '123456', // app login code — defaults to 123456
       role: 'teacher',
       isVerified: true,
       address,

@@ -7,6 +7,7 @@ const Batch = require('../models/Batch');
 const Fee = require('../models/Fee');
 const ApiResponse = require('../utils/apiResponse');
 const { getMonthBounds } = require('../utils/helpers');
+const { monthlyTrends } = require('../utils/trends');
 
 const getAttendanceReport = async (req, res, next) => {
   try {
@@ -87,25 +88,8 @@ const getDashboardAnalytics = async (req, res, next) => {
     const presentAtt = monthAttendance.filter((a) => a.status === 'present' || a.status === 'late').length;
     const attendanceRate = totalAtt > 0 ? Math.round((presentAtt / totalAtt) * 100) : 0;
 
-    // Generate trend data for the last 6 months to display in charts
-    const attendanceTrend = [];
-    const revenueTrend = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(now.getMonth() - i);
-      const monthName = d.toLocaleString('default', { month: 'short' });
-      
-      attendanceTrend.push({
-        date: monthName,
-        attendanceRate: i === 0 ? attendanceRate : Math.floor(Math.random() * 15) + 80 // 80-95%
-      });
-      
-      revenueTrend.push({
-        month: monthName,
-        collected: Math.floor(Math.random() * 50000) + 100000, // 100k - 150k
-        pending: i === 0 ? (pendingFees[0]?.total || 0) : Math.floor(Math.random() * 20000) + 5000 // 5k - 25k
-      });
-    }
+    // Real last-6-months trend data from actual records
+    const { attendanceTrend, revenueTrend } = await monthlyTrends(now);
 
     return ApiResponse.success(res, {
       data: {

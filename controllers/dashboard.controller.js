@@ -6,6 +6,7 @@ const Fee = require('../models/Fee');
 const Payment = require('../models/Payment');
 const ApiResponse = require('../utils/apiResponse');
 const { getDayBounds, getMonthBounds } = require('../utils/helpers');
+const { monthlyTrends } = require('../utils/trends');
 
 /**
  * @desc    Get admin dashboard stats
@@ -60,24 +61,8 @@ const getAdminDashboard = async (req, res, next) => {
       attendanceSummary[item._id] = item.count;
     });
 
-    // Monthly attendance trends (last 6 months)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-    const attendanceTrends = await Attendance.aggregate([
-      { $match: { date: { $gte: sixMonthsAgo } } },
-      {
-        $group: {
-          _id: {
-            year: { $year: '$date' },
-            month: { $month: '$date' },
-            status: '$status',
-          },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { '_id.year': 1, '_id.month': 1 } },
-    ]);
+    // Real monthly trends (last 6 months) for the dashboard charts
+    const { attendanceTrend, revenueTrend } = await monthlyTrends(today);
 
     return ApiResponse.success(res, {
       data: {
@@ -89,8 +74,9 @@ const getAdminDashboard = async (req, res, next) => {
           todayAttendance: attendanceSummary,
           pendingFees: pendingFees.length > 0 ? pendingFees[0] : { total: 0, count: 0 },
           monthlyRevenue: monthlyRevenue.length > 0 ? monthlyRevenue[0] : { total: 0, count: 0 },
+          attendanceTrend,
+          revenueTrend,
         },
-        attendanceTrends,
         recentPayments,
       },
     });

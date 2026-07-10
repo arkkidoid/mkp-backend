@@ -140,16 +140,20 @@ const markAttendance = async (req, res, next) => {
     const batch = await Batch.findOne({ _id: batchId, teacher: req.user._id });
     if (!batch) throw ApiError.forbidden('You can only mark attendance for your batches');
 
+    // Normalize to start-of-day so re-marking the same day updates (not duplicates)
+    const attDate = new Date(date);
+    attDate.setHours(0, 0, 0, 0);
+
     const attendanceRecords = [];
     const absentChildren = [];
 
     for (const record of records) {
       const attendance = await Attendance.findOneAndUpdate(
-        { child: record.childId, batch: batchId, date: new Date(date) },
+        { child: record.childId, batch: batchId, date: attDate },
         {
           child: record.childId,
           batch: batchId,
-          date: new Date(date),
+          date: attDate,
           status: record.status,
           markedBy: req.user._id,
           remarks: record.remarks,
