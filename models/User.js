@@ -110,6 +110,7 @@ userSchema.methods.compareAccessCode = async function (candidateCode) {
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.accessCode;
   delete obj.refreshTokens;
   delete obj.__v;
   return obj;
