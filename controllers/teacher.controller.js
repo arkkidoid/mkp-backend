@@ -271,6 +271,43 @@ const createAssignment = async (req, res, next) => {
 };
 
 /**
+ * @desc    Update an assignment
+ * @route   PUT /api/teacher/assignments/:id
+ */
+const updateAssignment = async (req, res, next) => {
+  try {
+    const assignment = await Assignment.findOne({ _id: req.params.id, teacher: req.user._id });
+    if (!assignment) throw ApiError.notFound('Assignment not found or not yours');
+
+    const updated = await Assignment.findByIdAndUpdate(req.params.id, req.body, {
+      new: true, runValidators: true,
+    }).populate('batch', 'name');
+
+    return ApiResponse.success(res, { message: 'Assignment updated', data: updated });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete an assignment
+ * @route   DELETE /api/teacher/assignments/:id
+ */
+const deleteAssignment = async (req, res, next) => {
+  try {
+    const assignment = await Assignment.findOne({ _id: req.params.id, teacher: req.user._id });
+    if (!assignment) throw ApiError.notFound('Assignment not found or not yours');
+
+    await Submission.deleteMany({ assignment: assignment._id });
+    await Assignment.findByIdAndDelete(assignment._id);
+
+    return ApiResponse.success(res, { message: 'Assignment deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Get assignments for teacher
  * @route   GET /api/teacher/assignments
  */
@@ -439,6 +476,8 @@ module.exports = {
   markAttendance,
   getAttendanceHistory,
   createAssignment,
+  updateAssignment,
+  deleteAssignment,
   getAssignments,
   sendAnnouncement,
   applyLeave,

@@ -22,6 +22,8 @@ router.get('/attendance/:batchId', teacherController.getAttendanceHistory);
 // Assignments
 router.get('/assignments', teacherController.getAssignments);
 router.post('/assignments', validate(assignmentValidator.createAssignment), teacherController.createAssignment);
+router.put('/assignments/:id', validate(assignmentValidator.updateAssignment), teacherController.updateAssignment);
+router.delete('/assignments/:id', teacherController.deleteAssignment);
 
 // Announcements
 router.post('/announcements', teacherController.sendAnnouncement);
