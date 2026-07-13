@@ -30,6 +30,7 @@ const galleryRoutes = require('./routes/gallery.routes');
 const messageRoutes = require('./routes/message.routes');
 const feeRoutes = require('./routes/fee.routes');
 const reportRoutes = require('./routes/report.routes');
+const publicRoutes = require('./routes/public.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -69,6 +70,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // API Routes
+app.use('/api/public', publicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/teacher', teacherRoutes);
