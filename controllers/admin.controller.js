@@ -7,6 +7,7 @@ const Subject = require('../models/Subject');
 const Attendance = require('../models/Attendance');
 const Fee = require('../models/Fee');
 const Submission = require('../models/Submission');
+const Enquiry = require('../models/Enquiry');
 const ApiResponse = require('../utils/apiResponse');
 const ApiError = require('../utils/apiError');
 const { getPaginationOptions, buildSearchFilter, getDayBounds } = require('../utils/helpers');
@@ -799,7 +800,60 @@ const deleteSubject = async (req, res, next) => {
   }
 };
 
+// ==================== ENQUIRIES (public leads) ====================
+
+/**
+ * @desc    List admission enquiries submitted from the app's guest section
+ * @route   GET /api/admin/enquiries
+ */
+const getEnquiries = async (req, res, next) => {
+  try {
+    const filter = req.query.status ? { status: req.query.status } : {};
+    const enquiries = await Enquiry.find(filter).sort('-createdAt').limit(200);
+    const newCount = await Enquiry.countDocuments({ status: 'new' });
+    return ApiResponse.success(res, { data: enquiries, meta: { newCount } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Update an enquiry's status (new / contacted / closed)
+ * @route   PUT /api/admin/enquiries/:id
+ */
+const updateEnquiry = async (req, res, next) => {
+  try {
+    const enquiry = await Enquiry.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true, runValidators: true }
+    );
+    if (!enquiry) throw ApiError.notFound('Enquiry not found');
+    return ApiResponse.success(res, { message: 'Enquiry updated', data: enquiry });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete an enquiry
+ * @route   DELETE /api/admin/enquiries/:id
+ */
+const deleteEnquiry = async (req, res, next) => {
+  try {
+    const enquiry = await Enquiry.findByIdAndDelete(req.params.id);
+    if (!enquiry) throw ApiError.notFound('Enquiry not found');
+    return ApiResponse.success(res, { message: 'Enquiry deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
+  // Enquiries
+  getEnquiries,
+  updateEnquiry,
+  deleteEnquiry,
   // Parents
   getParents,
   getParent,
