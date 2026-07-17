@@ -5,6 +5,10 @@ const { isAdmin } = require('../middleware/role.middleware');
 
 router.use(protect, isAdmin);
 
+// Settings (admin profile + school info)
+router.get('/settings', adminController.getSettings);
+router.put('/settings', adminController.updateSettings);
+
 // Enquiries (public leads from the app's guest section)
 router.get('/enquiries', adminController.getEnquiries);
 router.put('/enquiries/:id', adminController.updateEnquiry);
