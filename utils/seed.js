@@ -52,10 +52,10 @@ const seedDatabase = async () => {
 
     // ── ADMIN (web dashboard login) ──────────────────────
     const adminUser = await User.create({
-      name: 'Kartthik Reddy',
-      email: 'admin@arkkidoid.com',
+      name: 'Karthik Reddy',
+      email: 'admin@arkkidoid.in',
       phone: '9999900001',
-      password: 'Admin@123',
+      password: 'admin@0909',
       role: 'admin',
       isActive: true,
       isVerified: true,
@@ -68,7 +68,7 @@ const seedDatabase = async () => {
       schoolPhone: '0120-4567890',
       schoolEmail: 'hello@arkkidoid.com',
     });
-    console.log('👤 Admin created — Kartthik Reddy');
+    console.log('👤 Admin created — Karthik Reddy');
 
     // ── SUMMARY ──────────────────────────────────────────
     console.log('\n' + '═'.repeat(58));
@@ -77,8 +77,8 @@ const seedDatabase = async () => {
     console.log('\n🔐  ADMIN DASHBOARD (web — email + password):');
     console.log('  ┌────────────────────────────────────────────┐');
     console.log('  │  URL:      http://localhost:5173            │');
-    console.log('  │  Email:    admin@arkkidoid.com              │');
-    console.log('  │  Password: Admin@123                        │');
+    console.log('  │  Email:    admin@arkkidoid.in               │');
+    console.log('  │  Password: admin@0909                       │');
     console.log('  └────────────────────────────────────────────┘');
     console.log('\n📱  MOBILE APP (teacher / parent):');
     console.log('     Add teachers & parents from the dashboard,');

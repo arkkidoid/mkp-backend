@@ -13,7 +13,8 @@ const initializeSocket = (server) => {
         process.env.ADMIN_URL || 'http://localhost:5173',
         'https://mkp-admin.vercel.app',
         'https://admin.mrbits.in',
-        'https://admin.mrbites.in'
+        'https://admin.mrbites.in',
+        'https://admin.mastikipaathshaala.org'
       ],
       credentials: true,
     },
