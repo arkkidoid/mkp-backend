@@ -901,7 +901,7 @@ const updateSettings = async (req, res, next) => {
 
     // Update the Admin profile (school info)
     const profileUpdate = {};
-    if (schoolName !== undefined) profileUpdate.schoolName = schoolName;
+    if (schoolName !== undefined) profileUpdate.schoolName = schoolName || 'ARK Kidoid';
     if (designation !== undefined) profileUpdate.designation = designation;
     if (schoolPhone !== undefined) profileUpdate.schoolPhone = schoolPhone;
     if (schoolEmail !== undefined) profileUpdate.schoolEmail = schoolEmail;
@@ -910,8 +910,8 @@ const updateSettings = async (req, res, next) => {
 
     const profile = await Admin.findOneAndUpdate(
       { user: req.user._id },
-      profileUpdate,
-      { new: true, runValidators: true, upsert: true }
+      { $set: profileUpdate },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 
     return ApiResponse.success(res, {
