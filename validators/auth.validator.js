@@ -48,6 +48,14 @@ const phoneLogin = Joi.object({
   device: Joi.string().optional().default('unknown'),
 });
 
+const adminLogin = Joi.object({
+  accessCode: Joi.string().min(4).max(64).required().messages({
+    'string.min': 'Access code is too short',
+    'any.required': 'Access code is required',
+  }),
+  device: Joi.string().optional().default('unknown'),
+});
+
 const login = Joi.object({
   email: Joi.string().email().required().messages({
     'string.email': 'Please provide a valid email',
@@ -99,6 +107,7 @@ module.exports = {
   sendOTP,
   verifyOTP,
   phoneLogin,
+  adminLogin,
   login,
   register,
   refreshToken,

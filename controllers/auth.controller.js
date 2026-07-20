@@ -109,6 +109,29 @@ const phoneLogin = async (req, res, next) => {
 };
 
 /**
+ * @desc    Admin dashboard login via access code only (no email/password)
+ * @route   POST /api/auth/admin-login
+ * @access  Public
+ */
+const adminLogin = async (req, res, next) => {
+  try {
+    const { accessCode, device } = req.body;
+    if (!accessCode) throw ApiError.badRequest('Access code is required');
+
+    // Match the code against any active admin's stored access code
+    const admins = await User.find({ role: 'admin', isActive: true }).select('+accessCode');
+    for (const admin of admins) {
+      if (await admin.compareAccessCode(accessCode)) {
+        return issueSession(res, admin, device);
+      }
+    }
+    throw ApiError.unauthorized('Invalid access code');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Login with email and password
  * @route   POST /api/auth/login
  * @access  Public
@@ -319,6 +342,7 @@ module.exports = {
   sendOTP,
   verifyOTP,
   phoneLogin,
+  adminLogin,
   login,
   refreshToken,
   logout,
