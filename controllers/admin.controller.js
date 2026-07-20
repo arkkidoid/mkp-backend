@@ -1,5 +1,4 @@
 const User = require('../models/User');
-const Admin = require('../models/Admin');
 const Parent = require('../models/Parent');
 const Teacher = require('../models/Teacher');
 const Child = require('../models/Child');
@@ -850,83 +849,7 @@ const deleteEnquiry = async (req, res, next) => {
   }
 };
 
-// ==================== SETTINGS ====================
-
-/**
- * @desc    Get admin settings (admin profile + school info)
- * @route   GET /api/admin/settings
- */
-const getSettings = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user._id).select('name email phone');
-    if (!user) throw ApiError.notFound('Admin user not found');
-
-    const profile = await Admin.findOne({ user: req.user._id });
-
-    return ApiResponse.success(res, {
-      data: {
-        user,
-        profile: profile || {},
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * @desc    Update admin settings (admin profile + school info)
- * @route   PUT /api/admin/settings
- */
-const updateSettings = async (req, res, next) => {
-  try {
-    const {
-      name, email, phone,
-      schoolName, designation, schoolPhone, schoolEmail, schoolWebsite,
-      schoolAddress,
-    } = req.body;
-
-    // Update the User record (name, email, phone)
-    const userUpdate = {};
-    if (name !== undefined) userUpdate.name = name;
-    if (email !== undefined) userUpdate.email = email;
-    if (phone !== undefined) userUpdate.phone = phone;
-
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      userUpdate,
-      { new: true, runValidators: true }
-    ).select('name email phone');
-    if (!user) throw ApiError.notFound('Admin user not found');
-
-    // Update the Admin profile (school info)
-    const profileUpdate = {};
-    if (schoolName !== undefined) profileUpdate.schoolName = schoolName || 'ARK Kidoid';
-    if (designation !== undefined) profileUpdate.designation = designation;
-    if (schoolPhone !== undefined) profileUpdate.schoolPhone = schoolPhone;
-    if (schoolEmail !== undefined) profileUpdate.schoolEmail = schoolEmail;
-    if (schoolWebsite !== undefined) profileUpdate.schoolWebsite = schoolWebsite;
-    if (schoolAddress !== undefined) profileUpdate.schoolAddress = schoolAddress;
-
-    const profile = await Admin.findOneAndUpdate(
-      { user: req.user._id },
-      { $set: profileUpdate },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
-
-    return ApiResponse.success(res, {
-      message: 'Settings saved successfully',
-      data: { user, profile },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 module.exports = {
-  // Settings
-  getSettings,
-  updateSettings,
   // Enquiries
   getEnquiries,
   updateEnquiry,
