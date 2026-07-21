@@ -295,7 +295,11 @@ const getGallery = async (req, res, next) => {
     const batchIds = children.filter((c) => c.batch).map((c) => c.batch);
 
     const gallery = await Gallery.find({
-      batch: { $in: batchIds },
+      $or: [
+        { batch: { $in: batchIds } },
+        { batch: null },
+        { batch: { $exists: false } }
+      ],
       isPublished: true,
     })
       .populate('batch', 'name')
