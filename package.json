@@ -10,7 +10,13 @@
     "lint": "eslint .",
     "seed": "node utils/seed.js"
   },
-  "keywords": ["school", "management", "education", "parent", "teacher"],
+  "keywords": [
+    "school",
+    "management",
+    "education",
+    "parent",
+    "teacher"
+  ],
   "author": "ARK Kidoid",
   "license": "ISC",
   "dependencies": {

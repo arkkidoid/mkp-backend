@@ -5,11 +5,15 @@ const { isTeacher } = require('../middleware/role.middleware');
 const { validate } = require('../middleware/validation.middleware');
 const attendanceValidator = require('../validators/attendance.validator');
 const assignmentValidator = require('../validators/assignment.validator');
+const upload = require('../middleware/upload.middleware');
 
 router.use(protect, isTeacher);
 
 // Dashboard
 router.get('/dashboard', teacherController.getDashboard);
+
+// Gallery
+router.post('/gallery', upload.single('image'), teacherController.uploadGalleryItem);
 
 // Batches
 router.get('/batches', teacherController.getMyBatches);

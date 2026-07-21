@@ -469,6 +469,46 @@ const getMyParents = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Upload a new gallery item (moment)
+ * @route   POST /api/teacher/gallery
+ */
+const uploadGalleryItem = async (req, res, next) => {
+  try {
+    const { title, description } = req.body;
+    
+    if (!req.file) {
+      throw ApiError.badRequest('Please upload an image');
+    }
+    
+    if (!title) {
+      throw ApiError.badRequest('Title is required');
+    }
+
+    // Since we're hosting locally for now, construct the URL
+    // e.g. /uploads/filename.jpg
+    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+    const baseUrl = `${protocol}://${req.get('host')}`;
+    const fileUrl = `${baseUrl}/uploads/${req.file.filename}`;
+
+    const galleryItem = await Gallery.create({
+      title,
+      description,
+      albumType: 'classroom_moment',
+      uploadedBy: req.user._id,
+      media: [{ url: fileUrl, type: 'image' }],
+      isPublished: true, // Auto-publish teacher moments
+    });
+
+    return ApiResponse.success(res, {
+      message: 'Moment uploaded successfully',
+      data: galleryItem
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboard,
   getMyBatches,
@@ -483,4 +523,5 @@ module.exports = {
   applyLeave,
   getLeaveHistory,
   getMyParents,
+  uploadGalleryItem,
 };

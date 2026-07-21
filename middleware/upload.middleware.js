@@ -1,56 +1,37 @@
 const multer = require('multer');
 const path = require('path');
-const ApiError = require('../utils/apiError');
-const { UPLOAD } = require('../utils/constants');
+const fs = require('fs');
 
-// Memory storage for Cloudinary uploads
-const storage = multer.memoryStorage();
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, '..', 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
-// File filter
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    ...UPLOAD.ALLOWED_IMAGE_TYPES,
-    ...UPLOAD.ALLOWED_DOCUMENT_TYPES,
-    ...UPLOAD.ALLOWED_VIDEO_TYPES,
-  ];
-
-  if (allowedTypes.includes(file.mimetype)) {
+  if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
-    cb(
-      ApiError.badRequest(
-        `File type ${file.mimetype} is not supported. Allowed: images, PDFs, and videos.`
-      ),
-      false
-    );
+    cb(new Error('Not an image! Please upload only images.'), false);
   }
 };
 
-// Single file upload
-const uploadSingle = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: UPLOAD.MAX_FILE_SIZE },
-}).single('file');
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
 
-// Multiple files upload (max 10)
-const uploadMultiple = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: UPLOAD.MAX_FILE_SIZE },
-}).array('files', 10);
-
-// Avatar upload (images only)
-const uploadAvatar = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    if (UPLOAD.ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(ApiError.badRequest('Only image files are allowed for avatars'), false);
-    }
-  },
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB for avatars
-}).single('avatar');
-
-module.exports = { uploadSingle, uploadMultiple, uploadAvatar };
+module.exports = upload;
