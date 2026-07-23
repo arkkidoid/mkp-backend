@@ -47,4 +47,8 @@ router.delete('/subjects/:id', adminController.deleteSubject);
 const { getAdminDashboard } = require('../controllers/dashboard.controller');
 router.get('/dashboard', getAdminDashboard);
 
+// ==================== SITE SETTINGS ====================
+router.get('/settings', adminController.getSettings);
+router.put('/settings', adminController.updateSettings);
+
 module.exports = router;

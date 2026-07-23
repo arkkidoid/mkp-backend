@@ -8,6 +8,7 @@ const Attendance = require('../models/Attendance');
 const Fee = require('../models/Fee');
 const Submission = require('../models/Submission');
 const Enquiry = require('../models/Enquiry');
+const SiteSettings = require('../models/SiteSettings');
 const ApiResponse = require('../utils/apiResponse');
 const ApiError = require('../utils/apiError');
 const { getPaginationOptions, buildSearchFilter, getDayBounds } = require('../utils/helpers');
@@ -849,6 +850,32 @@ const deleteEnquiry = async (req, res, next) => {
   }
 };
 
+// ==================== SITE SETTINGS ====================
+
+const getSettings = async (req, res, next) => {
+  try {
+    let settings = await SiteSettings.findOne();
+    if (!settings) settings = await SiteSettings.create({});
+    return ApiResponse.success(res, { data: settings });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateSettings = async (req, res, next) => {
+  try {
+    let settings = await SiteSettings.findOne();
+    if (!settings) {
+      settings = await SiteSettings.create(req.body);
+    } else {
+      settings = await SiteSettings.findByIdAndUpdate(settings._id, req.body, { new: true });
+    }
+    return ApiResponse.success(res, { data: settings, message: 'Settings updated' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   // Enquiries
   getEnquiries,
@@ -882,4 +909,7 @@ module.exports = {
   createSubject,
   updateSubject,
   deleteSubject,
+  // Settings
+  getSettings,
+  updateSettings,
 };

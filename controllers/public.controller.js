@@ -8,8 +8,22 @@ const Batch = require('../models/Batch');
 const Gallery = require('../models/Gallery');
 const Event = require('../models/Event');
 const Enquiry = require('../models/Enquiry');
+const SiteSettings = require('../models/SiteSettings');
 const ApiResponse = require('../utils/apiResponse');
 const ApiError = require('../utils/apiError');
+
+// GET /api/public/settings
+const getSettings = async (req, res, next) => {
+  try {
+    let settings = await SiteSettings.findOne();
+    if (!settings) {
+      settings = await SiteSettings.create({});
+    }
+    return ApiResponse.success(res, { data: settings });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // GET /api/public/courses
 const getCourses = async (req, res, next) => {
@@ -82,4 +96,4 @@ const submitEnquiry = async (req, res, next) => {
   }
 };
 
-module.exports = { getCourses, getBatches, getGallery, getAnnouncements, submitEnquiry };
+module.exports = { getSettings, getCourses, getBatches, getGallery, getAnnouncements, submitEnquiry };
